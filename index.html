@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Чек-лист проверки ноутбука за 15 минут</title>
+<style>
+  /* ---------- Цвета (светлая и тёмная тема) ---------- */
+  :root {
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    --bg: #eef1f4;
+    --card: #ffffff;
+    --text: #1c2530;
+    --muted: #5b6776;
+    --line: #d3dae2;
+    --accent: #0f6e8c;
+    --ok: #2e7d4f;
+    --ok-bg: #e3f2e9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141a21;
+      --card: #1c242d;
+      --text: #e6ebf0;
+      --muted: #97a3b1;
+      --line: #313c48;
+      --accent: #5bb8d6;
+      --ok: #6fcf97;
+      --ok-bg: #1f3328;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141a21;
+    --card: #1c242d;
+    --text: #e6ebf0;
+    --muted: #97a3b1;
+    --line: #313c48;
+    --accent: #5bb8d6;
+    --ok: #6fcf97;
+    --ok-bg: #1f3328;
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "IBM Plex Sans", "Segoe UI", Arial, sans-serif;
+    font-size: 17px;
+    line-height: 1.5;
+  }
+
+  .page {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 16px 16px 60px 16px;
+  }
+
+  /* ---------- Верхняя панель (прилипает к верху) ---------- */
+  .top {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    background: var(--bg);
+    padding: 12px 0;
+    z-index: 5;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 20px;
+  }
+  h1 {
+    font-size: 26px;
+    line-height: 1.2;
+    margin: 0 0 4px 0;
+  }
+  .sub { color: var(--muted); margin: 0 0 12px 0; font-size: 15px; }
+
+  .bar {
+    height: 12px;
+    background: var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--accent);
+    transition: width 0.25s;
+  }
+  .top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    gap: 10px;
+  }
+  #progressText { font-size: 15px; color: var(--muted); }
+
+  .timer-box { display: flex; align-items: center; gap: 8px; }
+  #timerText {
+    font-size: 20px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  button {
+    font-family: inherit;
+    font-size: 15px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: #ffffff;
+    cursor: pointer;
+  }
+  :root[data-theme="dark"] button { color: #10202a; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) button { color: #10202a; }
+  }
+  button.light {
+    background: transparent;
+    color: var(--accent);
+  }
+  :root[data-theme="dark"] button.light { color: var(--accent); }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) button.light { color: var(--accent); }
+  }
+  button:focus-visible, input:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* ---------- Этапы ---------- */
+  .stage {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .stage.done { border-color: var(--ok); }
+
+  .stage-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+  .stage h2 { font-size: 19px; margin: 0; line-height: 1.3; }
+  .minutes { color: var(--muted); font-size: 14px; margin: 0 0 8px 0; }
+  .count {
+    font-size: 14px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .stage.done .count { color: var(--ok); font-weight: 600; }
+
+  /* ---------- Пункты ---------- */
+  .item {
+    display: flex;
+    gap: 12px;
+    padding: 12px 0;
+    border-top: 1px solid var(--line);
+    cursor: pointer;
+  }
+  .item input {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    margin: 2px 0 0 0;
+    accent-color: var(--accent);
+  }
+  .item-title { font-weight: 600; display: block; }
+  .item-text { color: var(--muted); font-size: 15px; display: block; }
+  .item input:checked + .item-body .item-title {
+    text-decoration: line-through;
+    color: var(--muted);
+  }
+
+  /* ---------- Итог ---------- */
+  .result {
+    display: none;
+    background: var(--ok-bg);
+    border: 1px solid var(--ok);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .result.show { display: block; }
+  .result h2 { margin: 0 0 6px 0; font-size: 20px; }
+  .result p { margin: 0; }
+
+  .footer-row { display: flex; gap: 10px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Верхняя панель -->
+  <div class="top">
+    <h1>Проверка ноутбука за 15 минут</h1>
+    <p class="sub">Отмечайте пункты по порядку. Прогресс сохраняется в браузере.</p>
+    <div class="bar"><div class="bar-fill" id="barFill"></div></div>
+    <div class="top-row">
+      <span id="progressText">Выполнено 0 из 0</span>
+      <div class="timer-box">
+        <span id="timerText">00:00</span>
+        <button id="timerBtn" onclick="toggleTimer()">Старт</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Этап 1 -->
+  <section class="stage">
+    <div class="stage-head">
+      <h2>Внешний осмотр и порты</h2>
+      <span class="count"></span>
+    </div>
+    <p class="minutes">Минуты 0–3</p>
+
+    <label class="item">
+      <input type="checkbox">
+      <span class="item-body">
+        <span class="item-title">Корпус и петли</span>
+        <span class="item-text">Откройте и закройте крышку пару раз. Петли ходят плавно, без хруста и люфта, рамка экрана не расходится.</span>
+      </span>
+    </label>
+    <label class="item">
+      <input type="checkbox">
+      <span class="item-body">
+        <span class="item-title">Винты и следы вскрытия</span>
+        <span class="item-text">На нижней крышке все болты на месте, нет слизанных шлицев и следов грубого вскрытия.</span>
+      </span>
+    </label>
+    <label class="item">
+      <input type="checkbox">
+      <span class="item-body">
+        <span class="item-title">Блок питания</span>
+        <span class="item-text">Подключите зарядку к розетке и к ноутбуку. Индикатор заряда горит, гнездо питания не болтается.</span>
+      </span>
+    </label>
+    <label class="item">
+      <input type="checkbox">
+      <span class="item-body">
+        <span class="item-title">Порты и флешка</span>
+        <span class="item-text">Вставьте флешку Ventoy по очереди в каждый USB-разъём: все определяются и работают.</span>
+      </span>
+    </label>
+  </section>
+
+  <!-- Этап 2 -->
+  <section class="stage">
+    <div class="stage-head">
+      <h2>Характеристики и накопитель</h2>
+      <span class="count"></span>
+    </div>
+    <p class="minutes">Минуты 3–6</p>
+
+    <label class="item">
+      <input type="checkbox">
+      <span class="item-body">
+        <span class="item-title">CPU-Z: процессор и память</span>
+        <span class="item-text">Запустите CPU.Z.exe. Сверьте модель процессора, число ядер и частоты с тем, что заявил продавец. На вкладке Memory проверьте объём ОЗУ и режим (Dual или Single).</span>
+      </span>
+    </label>
+    <label class="item">
+      <input type="checkbox">
+      <span class="item-body">
+        <span class="item-title">GPU-Z: видеокарты</span>
+        <span class="item-text">Запустите GPU.Z.exe. Проверьте встроенную и дискретную видеокарту (если есть): объём видеопамяти, тип памяти (GDDR) и шину.</span>
+      </span>
+    </label>
+    <label class="item">
+      <input type="checkbox">
+      <span class="item-body">
+        <span class="item-title">CrystalDiskInfo: состояние диска</span>
+        <span class="item-text">Статус диска «Хорошо» (синий кружок). Посмотрите «Время работы» (Power On Hours) и «Переназначенные секторы» (Reallocated Sectors).</span>
+      </span>
+    </label>
+    <label class="item">
+      <input type="checkbox">
+      <span class="item-body">
+        <span class="item-title">CrystalDiskMark (если успеваете)</span>
+        <span class="item-text">Один базовый тест чтения и записи: 1 GiB, 1 проход. Так вы исключите зависания контроллера SSD.</span>
+      </span>
+    </label>
+  </section>
+
+  <!-- Этап 3 -->
+  <section class="stage">
+    <div class="stage-head">
+      <h2>Батарея, клавиатура, звук</h2>
+      <span class="count"></span>
+    </div>
+    <p class="minutes">Минуты 6–8</p>
+
+    <label class="item">
+      <input type="checkbox">
+      <span class="item-body">
+        <span class="item-title">BatteryInfoView: износ батареи</span>
+        <span class="item-text">Сравните Designed Capacity (паспортная ёмкость) и Full Charged Capacity (реальная ёмкость). Если Battery Wear Level выше 30–40%, батарея держит заметно хуже новой.</span>
+      </span>
+    </label>
+    <label class="item">
+      <input type="checkbox">
+      <span class="item-body">
+        <span class="item-title">Работа от батареи</span>
+        <span class="item-text">Отключите зарядку на пару минут. Ноутбук не выключается резко, заряд падает плавно.</span>
+      </span>
+    </label>
+    <label class="item">
+      <input type="checkbox">
+      <span class="item-body">
+        <span class="item-title">Клавиатура</span>
+        <span class="item-text">Откройте Блокнот или онлайн-тестер (Wi-Fi можно раздать с телефона). Нажмите все клавиши подряд, включая пробел, Shift, Enter и F-клавиши.</span>
+      </span>
+    </label>
+    <label class="item">
+      <input type="checkbox">
+      <span class="item-body">
+        <span class="item-title">Тачпад</span>
+        <span class="item-text">Проверьте клики и жесты прокрутки.</span>
+      </span>
+    </label>
+    <label class="item">
+      <input type="checkbox">
+      <span class="item-body">
+        <span class="item-title">Звук</span>
+        <span class="item-text">Включите любой звук или файл с флешки, прибавьте громкость до максимума. Динамики не хрипят и не дребезжат.</span>
+      </span>
+    </label>
+  </section>
+
+  <!-- Этап 4 -->
+  <section class="stage">
+    <div class="stage-head">
+      <h2>Нагрузка и температуры</h2>
+      <span class="count"></span>
+    </div>
+    <p class="minutes">Минуты 8–13</p>
+
+    <label class="item">
+      <input type="checkbox">
+      <span class="item-body">
+        <span class="item-title">HWiNFO64 или HWMonitor</span>
+        <span class="item-text">Запустите HWINFO64.exe (режим Sensors only) или HWMonitor_x64.exe. Следите за текущими и максимальными температурами CPU и GPU.</span>
+      </span>
+    </label>
+    <label class="item">
+      <input type="checkbox">
+      <span class="item-body">
+        <span class="item-title">FurMark: видеокарта</span>
+        <span class="item-text">Запустите FurMark_win64 в разрешении экрана. На картинке нет мерцаний, полос и артефактов, драйвер не вылетает. Температура GPU стабилизируется (обычно до 75–85°C, зависит от модели).</span>
+      </span>
+    </label>
+    <label class="item">
+      <input type="checkbox">
+      <span class="item-body">
+        <span class="item-title">AIDA64: процессор</span>
+        <span class="item-text">AIDA.64.exe → Сервис → Тест стабильности системы. Отметьте Stress CPU и Stress FPU и подержите 3–4 минуты. Нет синего экрана, зависаний и аварийного выключения.</span>
+      </span>
+    </label>
+    <label class="item">
+      <input type="checkbox">
+      <span class="item-body">
+        <span class="item-title">Троттлинг</span>
+        <span class="item-text">В HWiNFO посмотрите индикатор Thermal Throttling: перегрева с падением частот быть не должно.</span>
+      </span>
+    </label>
+  </section>
+
+  <!-- Этап 5 -->
+  <section class="stage">
+    <div class="stage-head">
+      <h2>Экран</h2>
+      <span class="count"></span>
+    </div>
+    <p class="minutes">Минуты 13–15</p>
+
+    <label class="item">
+      <input type="checkbox">
+      <span class="item-body">
+        <span class="item-title">Белый фон</span>
+        <span class="item-text">Откройте полноэкранную белую заливку. Нет жёлтых пятен и засветов.</span>
+      </span>
+    </label>
+    <label class="item">
+      <input type="checkbox">
+      <span class="item-body">
+        <span class="item-title">Чёрный фон</span>
+        <span class="item-text">Нет светящихся битых пикселей и сильных ореолов подсветки по краям.</span>
+      </span>
+    </label>
+    <label class="item">
+      <input type="checkbox">
+      <span class="item-body">
+        <span class="item-title">Красный, зелёный, синий</span>
+        <span class="item-text">Прокликайте цветные заливки: цвета ровные, без полос и мёртвых пикселей.</span>
+      </span>
+    </label>
+  </section>
+
+  <!-- Итог -->
+  <div class="result" id="result">
+    <h2>Всё проверено</h2>
+    <p>Если ноутбук не выключился под нагрузкой, накопитель в норме, характеристики совпали с заявленными, а корпус целый, посылку можно забирать.</p>
+  </div>
+
+  <div class="footer-row">
+    <button class="light" onclick="resetAll()">Сбросить всё</button>
+  </div>
+
+</div>
+
+<script>
+  // ---------- Находим элементы на странице ----------
+  var boxes = document.querySelectorAll('input[type="checkbox"]');
+  var stages = document.querySelectorAll('.stage');
+  var barFill = document.getElementById('barFill');
+  var progressText = document.getElementById('progressText');
+  var result = document.getElementById('result');
+  var timerText = document.getElementById('timerText');
+  var timerBtn = document.getElementById('timerBtn');
+
+  // ---------- Сохранение и загрузка галочек ----------
+  // Сохраняем строку из нулей и единиц, например "1010011"
+  function saveState() {
+    var text = '';
+    for (var i = 0; i < boxes.length; i++) {
+      if (boxes[i].checked) {
+        text = text + '1';
+      } else {
+        text = text + '0';
+      }
+    }
+    try {
+      localStorage.setItem('laptopChecklist', text);
+    } catch (e) {
+      // Если хранилище недоступно, просто ничего не делаем
+    }
+  }
+
+  function loadState() {
+    var text = null;
+    try {
+      text = localStorage.getItem('laptopChecklist');
+    } catch (e) {
+      text = null;
+    }
+    if (text === null) {
+      return;
+    }
+    for (var i = 0; i < boxes.length; i++) {
+      if (text.charAt(i) === '1') {
+        boxes[i].checked = true;
+      }
+    }
+  }
+
+  // ---------- Обновление прогресса ----------
+  function updateAll() {
+    // 1. Считаем все отмеченные пункты
+    var done = 0;
+    for (var i = 0; i < boxes.length; i++) {
+      if (boxes[i].checked) {
+        done = done + 1;
+      }
+    }
+
+    // 2. Полоса и текст
+    var percent = Math.round((done / boxes.length) * 100);
+    barFill.style.width = percent + '%';
+    progressText.textContent = 'Выполнено ' + done + ' из ' + boxes.length;
+
+    // 3. Счётчик у каждого этапа
+    for (var s = 0; s < stages.length; s++) {
+      var stageBoxes = stages[s].querySelectorAll('input[type="checkbox"]');
+      var stageDone = 0;
+      for (var j = 0; j < stageBoxes.length; j++) {
+        if (stageBoxes[j].checked) {
+          stageDone = stageDone + 1;
+        }
+      }
+      stages[s].querySelector('.count').textContent = stageDone + ' / ' + stageBoxes.length;
+
+      if (stageDone === stageBoxes.length) {
+        stages[s].classList.add('done');
+      } else {
+        stages[s].classList.remove('done');
+      }
+    }
+
+    // 4. Итоговый блок
+    if (done === boxes.length) {
+      result.classList.add('show');
+    } else {
+      result.classList.remove('show');
+    }
+  }
+
+  // Когда человек нажимает на галочку — обновляем и сохраняем
+  function onBoxClick() {
+    updateAll();
+    saveState();
+  }
+  for (var i = 0; i < boxes.length; i++) {
+    boxes[i].addEventListener('change', onBoxClick);
+  }
+
+  // ---------- Сброс ----------
+  function resetAll() {
+    var sure = confirm('Снять все отметки?');
+    if (sure === false) {
+      return;
+    }
+    for (var i = 0; i < boxes.length; i++) {
+      boxes[i].checked = false;
+    }
+    stopTimer();
+    seconds = 0;
+    showTime();
+    updateAll();
+    saveState();
+  }
+
+  // ---------- Таймер ----------
+  var seconds = 0;
+  var timerId = null; // null значит "таймер не запущен"
+
+  function showTime() {
+    var min = Math.floor(seconds / 60);
+    var sec = seconds % 60;
+    var minText = String(min);
+    var secText = String(sec);
+    if (min < 10) { minText = '0' + minText; }
+    if (sec < 10) { secText = '0' + secText; }
+    timerText.textContent = minText + ':' + secText;
+  }
+
+  function tick() {
+    seconds = seconds + 1;
+    showTime();
+  }
+
+  function stopTimer() {
+    if (timerId !== null) {
+      clearInterval(timerId);
+      timerId = null;
+    }
+    timerBtn.textContent = 'Старт';
+  }
+
+  function toggleTimer() {
+    if (timerId === null) {
+      timerId = setInterval(tick, 1000);
+      timerBtn.textContent = 'Пауза';
+    } else {
+      stopTimer();
+    }
+  }
+
+  // ---------- Запуск при открытии страницы ----------
+  loadState();
+  updateAll();
+  showTime();
+</script>
+</body>
+</html>
